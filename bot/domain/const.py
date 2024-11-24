@@ -1,0 +1,1 @@
+DEFAULT_CHAT_TITLE = "Мой чат"
