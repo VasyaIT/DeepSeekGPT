@@ -51,9 +51,9 @@ async def my_chats_handler(message: Message, state: FSMContext, user: User) -> N
 
 
 @router.message(Command(HandlerCommand.SUPPORT))
-async def support_handler(message: Message, state: FSMContext, user: User) -> None:
+async def support_handler(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer(f"Техническая поддержка - <b>{bot_config.SUPPORT_USERNAME}</b>")
+    await message.answer(f"По вопросам вопросов писать сюда - <b>{bot_config.SUPPORT_USERNAME}</b>")
 
 
 @router.message(Command(HandlerCommand.ADMIN))
@@ -123,7 +123,7 @@ async def prompt_handler(message: Message, state: FSMContext, user: User) -> Mes
             return await message.answer("☝️ Обожди, у тебя уже есть активный запрос!")
         await state.clear()
     bot_message = await message.answer("Запрос в обработке...")
-    await state.update_data(request_expire_at=datetime.now() + timedelta(seconds=30))
+    await state.update_data(request_expire_at=datetime.now() + timedelta(minutes=1))
     try:
         answer, next_parent_message_id = await generate_answer(
             prompt=message.text, chat_id=chat.id, parent_message_id=chat.parent_message_id

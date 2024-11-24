@@ -14,16 +14,12 @@ async def generate_answer(prompt: str, chat_id: str, parent_message_id: int | No
     async with ClientSession(headers=REQUEST_HEADERS) as session:
         async with session.post(f"{DEEPSEEK_API_URL}/chat/completion", data=data) as response:
             text = await response.text()
-            print(text)
 
     message, next_parent_message_id = "", 0
     for chunk in text.split("data: "):
         if not chunk.strip():
             continue
         if chunk.strip() == "[DONE]":
-            break
-
-        if chunk == "[DONE]":
             break
         chunk_data = loads(chunk.strip())
 
