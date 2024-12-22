@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from traceback import format_exc
 
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
@@ -122,12 +123,28 @@ async def prompt_handler(message: Message, state: FSMContext, user: User) -> Mes
         if datetime.now() < request_expire_at:
             return await message.answer("☝️ Обожди, у тебя уже есть активный запрос!")
         await state.clear()
-    bot_message = await message.answer("Запрос в обработке...")
-    await state.update_data(request_expire_at=datetime.now() + timedelta(minutes=1))
+
+    await state.update_data(request_expire_at=datetime.now() + timedelta(minutes=2))
+    answer_text, count_chunks = "", 0
     try:
-        answer, next_parent_message_id = await generate_answer(
+        async for chunk, next_parent_message_id in generate_answer(
             prompt=message.text, chat_id=chat.id, parent_message_id=chat.parent_message_id
-        )
+        ):
+            if chunk:
+                count_chunks += 1
+                answer_text += chunk
+                if count_chunks == 1:
+                    bot_message = await message.answer(answer_text, parse_mode="markdown")
+                    continue
+                if count_chunks % 20 == 0:
+                    try:
+                        await bot_message.edit_text(answer_text, parse_mode="markdown")
+                    except TelegramBadRequest:
+                        continue
+        if answer_text:
+            await bot_message.edit_text(answer_text, parse_mode="markdown")
+    except TelegramBadRequest:
+        pass
     except Exception:
         await send_to_owners(hpre(f"API ERROR: {format_exc(chain=False)[:4000]}"))
         await state.clear()
@@ -136,8 +153,6 @@ async def prompt_handler(message: Message, state: FSMContext, user: User) -> Mes
             f"<i>Если ошибка повторится, обратись в поддержку - {bot_config.SUPPORT_USERNAME}</i>"
         )
     await state.clear()
-    await bot_message.delete()
-    await message.answer(answer, parse_mode="markdown")
     await update_chat(chat_id=chat.id, parent_message_id=next_parent_message_id)
 
 
